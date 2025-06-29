@@ -1,6 +1,15 @@
 import csv
 import argparse
 import requests
+import re
+
+PER_PAGE = 20
+
+
+def normalize_query(text: str) -> str:
+    """Return a cleaned query string with only word characters."""
+    tokens = re.findall(r"\w+", text, flags=re.UNICODE)
+    return " ".join(tokens)
 
 
 API_URL = "https://www.vinted.hu/api/v2/catalog/items"
@@ -9,9 +18,9 @@ API_URL = "https://www.vinted.hu/api/v2/catalog/items"
 def search_item(query: str, max_price: float) -> bool:
     """Return True if at least one listing is below or equal to max_price."""
     params = {
-        "search_text": query,
+        "search_text": normalize_query(query),
         "price_to": max_price,
-        "per_page": 1,
+        "per_page": PER_PAGE,
         "currency": "HUF",
     }
     try:

@@ -16,4 +16,5 @@ Run the checker with:
 python vinted_checker.py items.csv
 ```
 
-The script searches Vinted for each item and prints whether there is a listing below the specified price.
+The script performs a free-text search on Vinted for each item and checks the
+first 20 results to see if any listing is available under the given price.
