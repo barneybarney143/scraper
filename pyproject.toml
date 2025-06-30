@@ -1,0 +1,5 @@
+[tool.ruff]
+select = ["ALL"]
+ignore = ["D203", "ANN101"]
+line-length = 88
+target-version = "py311"
