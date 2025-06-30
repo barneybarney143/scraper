@@ -1,0 +1,17 @@
+# Ignore all CSV and Parquet files
+*.csv
+*.parquet
+
+# Ignore common plot/image file extensions
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+
+# Ignore specific directories
+/data/
+/grid_results/
+/plots/
+/results/
