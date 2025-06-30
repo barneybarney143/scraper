@@ -4,7 +4,7 @@ Installation:
     pip install yfinance pandas numpy matplotlib pyarrow python-dateutil --upgrade
 
 Example:
-    python ibs_multi.py --tickers "SPY,VWCE" --ibs_buy 0.25 --ibs_sell 0.75
+    python ibs_multi.py --tickers "SPY,QQQ" --ibs_buy 0.25 --ibs_sell 0.75
 """
 
 from __future__ import annotations
@@ -71,9 +71,13 @@ def backtest_strategy(
     df = data.copy()
     df["Buy_Signal"] = (df["IBS"] <= ibs_buy).astype(int)
     df["Sell_Signal"] = (df["IBS"] >= ibs_sell).astype(int)
-    df["Daily_Return"] = df["Close"].pct_change()
-    df["Strategy_Return"] = np.where(df["Buy_Signal"] == 1, df["Daily_Return"], 0)
-    df["Cumulative_Market_Return"] = (1 + df["Daily_Return"]).cumprod() - 1
+    df["Market_Return"] = df["Close"].pct_change()
+    signals = pd.Series(np.nan, index=df.index)
+    signals[df["IBS"] <= ibs_buy] = 1
+    signals[df["IBS"] >= ibs_sell] = 0
+    df["position"] = signals.shift(1).ffill().fillna(0).astype(int)
+    df["Strategy_Return"] = df["position"].shift(1) * df["Market_Return"]
+    df["Cumulative_Market_Return"] = (1 + df["Market_Return"]).cumprod() - 1
     df["Cumulative_Strategy_Return"] = (1 + df["Strategy_Return"]).cumprod() - 1
     return df
 
@@ -101,8 +105,8 @@ def plot_strategy_performance(df: pd.DataFrame, ticker: str, show: bool) -> None
 
 def summarize(df: pd.DataFrame) -> tuple[float, float, int, int]:
     """Return summary stats from backtest DataFrame."""
-    total_strat = df["Cumulative_Strategy_Return"].iloc[-1]
-    total_market = df["Cumulative_Market_Return"].iloc[-1]
+    total_strat = df["Cumulative_Strategy_Return"].iloc[-1] * 100
+    total_market = df["Cumulative_Market_Return"].iloc[-1] * 100
     buys = int(df["Buy_Signal"].sum())
     sells = int(df["Sell_Signal"].sum())
     return total_strat, total_market, buys, sells
@@ -112,7 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="IBS multi-ticker backtest")
     parser.add_argument(
         "--tickers",
-        default="SPY,QQQ,IWM,EFA,VNQ,VWCE",
+        default="SPY,QQQ,IWM,EFA,VNQ",
         help="Comma-separated tickers",
     )
     parser.add_argument("--ibs_buy", type=float, default=0.20, help="IBS buy threshold")
@@ -153,8 +157,8 @@ def main() -> None:
         summaries.append(
             {
                 "ticker": ticker,
-                "total_strategy_return": total_strat,
-                "total_market_return": total_market,
+                "cumulative_strategy_return": total_strat,
+                "cumulative_market_return": total_market,
                 "buy_signals": buys,
                 "sell_signals": sells,
             }
@@ -162,6 +166,9 @@ def main() -> None:
 
     if summaries:
         summary_df = pd.DataFrame(summaries)
+        summary_df = summary_df.round(
+            {"cumulative_strategy_return": 2, "cumulative_market_return": 2}
+        )
         print("\n", summary_df.to_string(index=False))
         RESULT_DIR.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
