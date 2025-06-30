@@ -1,0 +1,6 @@
+ticker,cumulative_strategy_return,cumulative_market_return,buy_signals,sell_signals
+SPY,192.97,254.36,458,786
+QQQ,223.83,452.04,453,821
+IWM,153.35,97.5,507,666
+EFA,95.8,88.07,458,802
+VNQ,91.04,77.17,494,707
