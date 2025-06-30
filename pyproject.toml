@@ -1,0 +1,8 @@
+[tool.ruff]
+select = ["ALL"]
+ignore = ["D203", "ANN101"]
+line-length = 88
+target-version = "py311"
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=xml --cov-fail-under=90"

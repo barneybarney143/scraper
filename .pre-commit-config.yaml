@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^src/|^tests/
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest --cov=src --cov-report=xml --cov-fail-under=90
+        language: system
+        pass_filenames: false
