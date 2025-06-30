@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 DATA_DIR = Path("data")
 PLOT_DIR = Path("plots")
 RESULT_DIR = Path("results")
+GRID_DIR = Path("grid_results")
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -112,6 +113,11 @@ def summarize(df: pd.DataFrame) -> tuple[float, float, int, int]:
     return total_strat, total_market, buys, sells
 
 
+def annual_irr(returns: pd.Series) -> pd.Series:
+    """Return calendar-year IRR series from daily returns."""
+    return returns.add(1).groupby(returns.index.year).prod() - 1
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="IBS multi-ticker backtest")
     parser.add_argument(
@@ -126,6 +132,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-plot", dest="plot", action="store_false", help="Disable plots"
     )
+    parser.add_argument("--grid", action="store_true", help="Run full parameter grid")
     parser.set_defaults(plot=True)
     return parser.parse_args()
 
@@ -135,6 +142,47 @@ def main() -> None:
     end = args.end or datetime.today().strftime("%Y-%m-%d")
     start = args.start or (datetime.today() - relativedelta(years=10)).strftime("%Y-%m-%d")
     tickers = [t.strip().upper() for t in args.tickers.split(",") if t.strip()]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if args.grid:
+        GRID_DIR.mkdir(exist_ok=True)
+        buy_levels = [round(x, 1) for x in np.arange(0.0, 1.0, 0.1)]
+        sell_levels = [round(x, 1) for x in np.arange(0.1, 1.0 + 0.1, 0.1)]
+        rows: list[dict[str, object]] = []
+        for ticker in tickers:
+            data = download_historical_data(ticker, start, end)
+            if data is None:
+                continue
+            data["IBS"] = calculate_ibs(data)
+            for buy in buy_levels:
+                for sell in sell_levels:
+                    if buy >= sell:
+                        continue
+                    df_bt = backtest_strategy(data, buy, sell)
+                    total_strat, total_market, buys_cnt, sells_cnt = summarize(df_bt)
+                    irr_s = annual_irr(df_bt["Strategy_Return"].dropna())
+                    irr_m = annual_irr(df_bt["Market_Return"].dropna())
+                    for year in irr_s.index:
+                        rows.append(
+                            {
+                                "ticker": ticker,
+                                "buy_thr": buy,
+                                "sell_thr": sell,
+                                "year": int(year),
+                                "strat_irr": irr_s.loc[year],
+                                "market_irr": irr_m.loc[year],
+                                "total_strat_ret": total_strat,
+                                "total_market_ret": total_market,
+                                "buy_signals": buys_cnt,
+                                "sell_signals": sells_cnt,
+                            }
+                        )
+        if rows:
+            grid_df = pd.DataFrame(rows)
+            file = GRID_DIR / f"ibs_grid_{timestamp}.csv"
+            grid_df.to_csv(file, index=False)
+            print(f"Grid search finished \u2013 rows: {len(grid_df)}, saved to {file}")
+        return
 
     summaries: list[dict[str, object]] = []
     for ticker in tickers:
@@ -153,14 +201,30 @@ def main() -> None:
         print(f"{ticker}  latest IBS={latest_ibs:.2f}  ⇒  {signal}")
         if args.plot:
             plot_strategy_performance(df, ticker, show=False)
-        total_strat, total_market, buys, sells = summarize(df)
+        irr_s = annual_irr(df["Strategy_Return"].dropna())
+        irr_m = annual_irr(df["Market_Return"].dropna())
+        irr_df = pd.DataFrame(
+            {
+                "Ticker": ticker,
+                "Year": irr_s.index.astype(int),
+                "Strategy": (irr_s.values * 100).round(1),
+                "Market": (irr_m.reindex(irr_s.index).values * 100).round(1),
+            }
+        )
+        print("\n=== Annual IRR (%)")
+        print(irr_df.to_string(index=False))
+        RESULT_DIR.mkdir(exist_ok=True)
+        irr_file = RESULT_DIR / f"irr_{ticker}_{timestamp}.csv"
+        irr_df.to_csv(irr_file, index=False)
+        logging.info("Saved IRR to %s", irr_file)
+        total_strat, total_market, buys_cnt, sells_cnt = summarize(df)
         summaries.append(
             {
                 "ticker": ticker,
                 "cumulative_strategy_return": total_strat,
                 "cumulative_market_return": total_market,
-                "buy_signals": buys,
-                "sell_signals": sells,
+                "buy_signals": buys_cnt,
+                "sell_signals": sells_cnt,
             }
         )
 
@@ -171,7 +235,6 @@ def main() -> None:
         )
         print("\n", summary_df.to_string(index=False))
         RESULT_DIR.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file = RESULT_DIR / f"ibs_summary_{timestamp}.csv"
         summary_df.to_csv(file, index=False)
         logging.info("Saved summary to %s", file)
