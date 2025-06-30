@@ -180,7 +180,7 @@ def main() -> None:
         if rows:
             grid_df = pd.DataFrame(rows)
             file = GRID_DIR / f"ibs_grid_{timestamp}.csv"
-            grid_df.to_csv(file, index=False)
+            grid_df.to_csv(file, index=False, sep=";", decimal=",")
             print(f"Grid search finished \u2013 rows: {len(grid_df)}, saved to {file}")
         return
 
@@ -215,7 +215,7 @@ def main() -> None:
         print(irr_df.to_string(index=False))
         RESULT_DIR.mkdir(exist_ok=True)
         irr_file = RESULT_DIR / f"irr_{ticker}_{timestamp}.csv"
-        irr_df.to_csv(irr_file, index=False)
+        irr_df.to_csv(irr_file, index=False, sep=";", decimal=",")
         logging.info("Saved IRR to %s", irr_file)
         total_strat, total_market, buys_cnt, sells_cnt = summarize(df)
         summaries.append(
@@ -236,7 +236,7 @@ def main() -> None:
         print("\n", summary_df.to_string(index=False))
         RESULT_DIR.mkdir(exist_ok=True)
         file = RESULT_DIR / f"ibs_summary_{timestamp}.csv"
-        summary_df.to_csv(file, index=False)
+        summary_df.to_csv(file, index=False, sep=";", decimal=",")
         logging.info("Saved summary to %s", file)
 
 
