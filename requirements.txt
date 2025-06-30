@@ -1,0 +1,8 @@
+pandas
+numpy
+yfinance
+requests
+pytest
+pytest-cov
+ruff
+pre-commit

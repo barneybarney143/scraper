@@ -1,0 +1,45 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "ANN",
+    "S101",
+    "I",
+    "T201",
+    "BLE",
+    "PTH",
+    "F401",
+    "B007",
+    "C901",
+    "DTZ002",
+    "DTZ005",
+    "E402",
+    "E501",
+    "ERA001",
+    "F841",
+    "FBT001",
+    "INP001",
+    "LOG",
+    "N802",
+    "N803",
+    "N806",
+    "N816",
+    "PD011",
+    "PD901",
+    "PERF401",
+    "PLR0912",
+    "PLR0915",
+    "PLR2004",
+    "RET504",
+    "S113",
+    "SIM102",
+    "TRY300",
+    "TRY401",
+    "W293",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=./ --cov-report=term-missing:skip-covered --cov-fail-under=20"
