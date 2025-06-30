@@ -13,6 +13,5 @@ Run `pre-commit install` to enable `astral-sh/ruff-pre-commit` (with --fix) and
 `pre-commit run --all-files` before committing. Unit tests are required and
 coverage may not fall below 90%.
 
-CI runs `ruff check` then `pytest --cov=src --cov-report=xml --cov-fail-under=90`.
-See https://github.com/astral-sh/ruff-pre-commit and
-https://github.com/astral-sh/ruff-action for details.
+CI runs only `pytest --cov=src --cov-report=xml --cov-fail-under=90`.
+Use https://github.com/astral-sh/ruff-pre-commit to lint locally.
