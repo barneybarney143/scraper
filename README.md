@@ -17,3 +17,9 @@ python vinted_checker.py items.csv
 ```
 
 The script searches Vinted for each item and prints whether there is a listing below the specified price.
+
+## Quick start
+```bash
+pip install -e .[dev]
+pre-commit install
+```
